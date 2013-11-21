@@ -8,8 +8,5 @@
   },
   "devDependencies": {
     "tape": "~2.1.0"
-  },
-  "dependencies": {
-    "xtend": "~2.1.1"
   }
 }
