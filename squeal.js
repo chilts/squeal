@@ -45,9 +45,10 @@ Table.prototype.colsToSel = function(cols) {
     }).join(', ');
 }
 
-Table.prototype.selAll = function() {
+Table.prototype.selAll = function(cols) {
     var self = this;
-    var sql = "SELECT " + self.colsToSel(this.cols) + " FROM " + this.sql.tablename;
+    cols = cols || this.cols;
+    var sql = "SELECT " + self.colsToSel(cols) + " FROM " + this.sql.tablename;
     return sql;
 };
 
