@@ -1,3 +1,13 @@
+// ----------------------------------------------------------------------------
+//
+// squeal.js - Create your SQL more easily.
+//
+// Copyright (c) 2013 Andrew Chilton. All Rights Reserved.
+//
+// License : MIT - http://chilts.mit-license.org/2013/
+//
+// ----------------------------------------------------------------------------
+
 function Table(definition) {
     if ( !definition.pk ) {
         throw new Error("provide a pk for this table");
@@ -38,6 +48,32 @@ function Table(definition) {
     }
 }
 
+Table.prototype.selAll = function(cols) {
+    var self = this;
+    cols = cols || this.cols;
+    cols.sort();
+    var sql = "SELECT " + self.colsToSel(cols) + " FROM " + this.sql.tablename;
+    return sql;
+};
+
+Table.prototype.selWhere = function(args, cols) {
+    var self = this;
+
+    if ( typeof args !== 'object' ) {
+        throw new Error("args must be an object");
+    }
+
+    cols = cols || this.cols;
+    cols.sort();
+    var sql = "SELECT " + self.colsToSel(cols) + " FROM " + this.sql.tablename;
+    sql += " WHERE ";
+    sql += self.argsToWhere(args);
+    return sql;
+};
+
+// ----------------------------------------------------------------------------
+// sql helpers
+
 Table.prototype.colsToSel = function(cols) {
     var self = this;
     return cols.map(function(c) {
@@ -45,13 +81,18 @@ Table.prototype.colsToSel = function(cols) {
     }).join(', ');
 }
 
-Table.prototype.selAll = function(cols) {
+Table.prototype.argsToWhere = function(args) {
     var self = this;
-    cols = cols || this.cols;
-    var sql = "SELECT " + self.colsToSel(cols) + " FROM " + this.sql.tablename;
-    return sql;
-};
+    var cols = Object.keys(args).sort();
+    return cols.map(function(c) {
+        return self.prefix ? self.prefix + '.' + c + ' = ?' : c + ' = ?';
+    }).join(', ');
+}
+
+// ----------------------------------------------------------------------------
 
 module.exports = function(definition) {
     return new Table(definition);
 }
+
+// ----------------------------------------------------------------------------
