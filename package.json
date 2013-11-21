@@ -3,10 +3,13 @@
   "description": "Create your SQL more easily.",
   "version": "0.1.0",
   "main": "squeal.js",
-  "scripts" : {
-    "test" : "set -e; for FILE in test/*.js; do node $FILE; done"
+  "scripts": {
+    "test": "set -e; for FILE in test/*.js; do node $FILE; done"
   },
   "devDependencies": {
     "tape": "~2.1.0"
+  },
+  "dependencies": {
+    "xtend": "~2.1.1"
   }
 }
