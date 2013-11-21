@@ -48,7 +48,7 @@ function Table(definition) {
     }
 }
 
-Table.prototype.selAll = function(cols) {
+Table.prototype.sel = function(cols) {
     var self = this;
     cols = cols || this.cols;
     cols.sort();
