@@ -71,6 +71,14 @@ Table.prototype.selWhere = function(args, cols) {
     return sql;
 };
 
+Table.prototype.ins = function(obj) {
+    var self = this;
+    var cols = Object.keys(obj).sort();
+    var into = cols.join(", ");
+    var placeholders = cols.map(function(field) { return '?'; }).join(", ");
+    return "INSERT INTO " + this.name + "(" + into + ") VALUES(" + placeholders + ")";
+};
+
 // ----------------------------------------------------------------------------
 // sql helpers
 
