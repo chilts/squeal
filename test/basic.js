@@ -78,6 +78,7 @@ test('the most basic table with some cols', function(t) {
 
     // upd
     t.equal(table.upd({ username : 'chilts', email : 'me@example.com', password : 5 }), "UPDATE user SET email = ?, password = ?, username = ?", 'upd() is ok');
+    t.equal(table.upd({ inserted : 1 }, { username : 'chilts', email : 'me@example.com' }), "UPDATE user SET inserted = ? WHERE email = ? AND username = ?", 'upd() with where is ok');
 
     t.end();
 });
@@ -101,6 +102,7 @@ test('the most basic table with a schema', function(t) {
 
     // upd
     t.equal(table.upd({ inserted : 4, updated : 5 }), "UPDATE account.user SET inserted = ?, updated = ?", 'upd() is ok');
+    t.equal(table.upd({ inserted : 1, updated : 1 }, { id : 4 }), "UPDATE account.user SET inserted = ?, updated = ? WHERE id = ?", 'upd() with where is ok');
 
     t.end();
 });
@@ -125,6 +127,7 @@ test('the most basic table with a prefix and a schema', function(t) {
 
     // upd
     t.equal(table.upd({ inserted : 4 }), "UPDATE account.user SET inserted = ?", 'upd() is ok');
+    t.equal(table.upd({ inserted : new Date() }, { id : 4 }), "UPDATE account.user SET inserted = ? WHERE id = ?", 'upd() with where is ok');
 
     t.end();
 });

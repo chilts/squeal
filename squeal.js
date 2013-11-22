@@ -80,11 +80,19 @@ Table.prototype.ins = function(obj) {
     return "INSERT INTO " + this.sql.tablename + "(" + into + ") VALUES(" + placeholders + ")";
 };
 
-Table.prototype.upd = function(obj) {
+Table.prototype.upd = function(obj, where) {
     var self = this;
     var cols = Object.keys(obj).sort();
     var sets = cols.map(function(c) { return c + ' = ?'; }).join(', ');
-    return "UPDATE " + this.sql.tablename + " SET " + sets;
+    var sql = "UPDATE " + this.sql.tablename + " SET " + sets;
+    if ( where ) {
+        sql = sql;
+        var whereClause = Object.keys(where).sort().map(function(c) {
+            return c + ' = ?';
+        }).join(' AND ');
+        sql += ' WHERE ' + whereClause;
+    }
+    return sql;
 };
 
 // ----------------------------------------------------------------------------
