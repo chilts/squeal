@@ -80,6 +80,13 @@ Table.prototype.ins = function(obj) {
     return "INSERT INTO " + this.sql.tablename + "(" + into + ") VALUES(" + placeholders + ")";
 };
 
+Table.prototype.updAll = function(obj) {
+    var self = this;
+    var cols = Object.keys(obj).sort();
+    var sets = cols.map(function(c) { return c + ' = ?'; }).join(', ');
+    return "UPDATE " + this.sql.tablename + " SET " + sets;
+};
+
 Table.prototype.upd = function(obj, where) {
     var self = this;
     var cols = Object.keys(obj).sort();
@@ -91,6 +98,9 @@ Table.prototype.upd = function(obj, where) {
             return c + ' = ?';
         }).join(' AND ');
         sql += ' WHERE ' + whereClause;
+    }
+    else {
+        sql += ' WHERE ' + this.pk + ' = ?';
     }
     return sql;
 };
