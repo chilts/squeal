@@ -43,8 +43,9 @@ function Table(definition) {
     if ( this.schema ) {
         this.sql.tablename = this.schema + '.' + this.name;
     }
+    this.sql.fqn = this.sql.tablename;
     if ( this.prefix ) {
-        this.sql.tablename += ' ' + this.prefix;
+        this.sql.fqn += ' ' + this.prefix;
     }
 }
 
@@ -52,7 +53,7 @@ Table.prototype.sel = function(cols) {
     var self = this;
     cols = cols || this.cols;
     cols.sort();
-    var sql = "SELECT " + self.colsToSel(cols) + " FROM " + this.sql.tablename;
+    var sql = "SELECT " + self.colsToSel(cols) + " FROM " + this.sql.fqn;
     return sql;
 };
 
@@ -65,7 +66,7 @@ Table.prototype.selWhere = function(args, cols) {
 
     cols = cols || this.cols;
     cols.sort();
-    var sql = "SELECT " + self.colsToSel(cols) + " FROM " + this.sql.tablename;
+    var sql = "SELECT " + self.colsToSel(cols) + " FROM " + this.sql.fqn;
     sql += " WHERE ";
     sql += self.argsToWhere(args);
     return sql;
@@ -76,7 +77,14 @@ Table.prototype.ins = function(obj) {
     var cols = Object.keys(obj).sort();
     var into = cols.join(", ");
     var placeholders = cols.map(function(field) { return '?'; }).join(", ");
-    return "INSERT INTO " + this.name + "(" + into + ") VALUES(" + placeholders + ")";
+    return "INSERT INTO " + this.sql.tablename + "(" + into + ") VALUES(" + placeholders + ")";
+};
+
+Table.prototype.upd = function(obj) {
+    var self = this;
+    var cols = Object.keys(obj).sort();
+    var sets = cols.map(function(c) { return c + ' = ?'; }).join(', ');
+    return "UPDATE " + this.sql.tablename + " SET " + sets;
 };
 
 // ----------------------------------------------------------------------------

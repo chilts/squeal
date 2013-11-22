@@ -76,6 +76,9 @@ test('the most basic table with some cols', function(t) {
     // ins
     t.equal(table.ins({ username : 'chilts', email : 'me@example.com' }), "INSERT INTO user(email, username) VALUES(?, ?)", 'ins() is ok');
 
+    // upd
+    t.equal(table.upd({ username : 'chilts', email : 'me@example.com', password : 5 }), "UPDATE user SET email = ?, password = ?, username = ?", 'upd() is ok');
+
     t.end();
 });
 
@@ -94,7 +97,10 @@ test('the most basic table with a schema', function(t) {
     t.equal(table.selWhere({ id : 4 }, [ 'id' ]), "SELECT id FROM account.user WHERE id = ?", 'selWhere() with cols is ok');
 
     // ins
-    t.equal(table.ins({ id : 4 }), "INSERT INTO user(id) VALUES(?)", 'ins() is ok');
+    t.equal(table.ins({ id : 4 }), "INSERT INTO account.user(id) VALUES(?)", 'ins() is ok');
+
+    // upd
+    t.equal(table.upd({ inserted : 4, updated : 5 }), "UPDATE account.user SET inserted = ?, updated = ?", 'upd() is ok');
 
     t.end();
 });
@@ -115,7 +121,10 @@ test('the most basic table with a prefix and a schema', function(t) {
     t.equal(table.selWhere({ id : 4 }, [ 'id' ]), "SELECT u.id AS u_id FROM account.user u WHERE u.id = ?", 'selWhere() with cols is ok');
 
     // ins
-    t.equal(table.ins({ id : 4 }), "INSERT INTO user(id) VALUES(?)", 'ins() is ok');
+    t.equal(table.ins({ id : 4 }), "INSERT INTO account.user(id) VALUES(?)", 'ins() is ok');
+
+    // upd
+    t.equal(table.upd({ inserted : 4 }), "UPDATE account.user SET inserted = ?", 'upd() is ok');
 
     t.end();
 });
