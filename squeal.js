@@ -41,15 +41,15 @@ function Table(definition) {
     this.sql = {};
     this.sql.tablename = this.name;
     if ( this.schema ) {
-        this.sql.tablename = this.schema + '.' + this.name;
+        this.sql.tablename = this.schema + "." + this.name;
     }
     this.sql.fqn = this.sql.tablename;
     if ( this.prefix ) {
-        this.sql.fqn += ' ' + this.prefix;
+        this.sql.fqn += " " + this.prefix;
     }
 }
 
-Table.prototype.sel = function(cols) {
+Table.prototype.selAll = function(cols) {
     var self = this;
     cols = cols || this.cols;
     cols.sort();
@@ -57,12 +57,35 @@ Table.prototype.sel = function(cols) {
     return sql;
 };
 
-Table.prototype.selWhere = function(where, cols) {
+Table.prototype.sel = function(opts) {
     var self = this;
+    opts = opts || { cols : self.cols };
 
-    cols = cols || this.cols;
-    cols.sort();
-    return "SELECT " + self.colsToSel(cols) + " FROM " + this.sql.fqn + " " + this.where(where);
+    if ( Array.isArray(opts) ) {
+        opts = {
+            cols : opts,
+        };
+    }
+
+    // Want: opts.cols, opts.where, opts.orderBy, opts.limit, opts.offset
+    opts.cols = opts.cols || this.cols;
+    opts.cols.sort();
+
+    // now make the sql
+    var sql = "SELECT " + self.colsToSel(opts.cols) + " FROM " + this.sql.fqn;
+    if ( opts.where ) {
+        sql += " " + this.where(opts.where);
+    }
+    if ( opts.orderBy ) {
+        sql += " " + this.orderBy(opts.orderBy);
+    }
+    if ( opts.limit ) {
+        sql += " LIMIT " + opts.limit;
+    }
+    if ( opts.offset ) {
+        sql += " OFFSET " + opts.offset;
+    }
+    return sql;
 };
 
 Table.prototype.ins = function(obj) {
@@ -70,7 +93,7 @@ Table.prototype.ins = function(obj) {
     var cols = Object.keys(obj).sort();
     var into = cols.join(", ");
     var placeholders = cols.map(function(field) { return '?'; }).join(", ");
-    return "INSERT INTO " + this.sql.tablename + "(" + into + ") VALUES(" + placeholders + ")";
+    return "INSERT INTO " + this.sql.tablename + "(" + into + ") VALUES(" + placeholders + ") RETURNING " + this.colsToReturning(this.cols);
 };
 
 Table.prototype.updAll = function(obj) {
@@ -127,6 +150,13 @@ Table.prototype.colsToSel = function(cols) {
     }).join(', ');
 }
 
+Table.prototype.colsToReturning = function(cols) {
+    var self = this;
+    return cols.map(function(c) {
+        return self.prefix ? c + ' AS ' + self.prefix + '_' + c : c;
+    }).join(', ');
+}
+
 Table.prototype.where = function(where) {
     var self = this;
 
@@ -142,6 +172,14 @@ Table.prototype.where = function(where) {
     }
 
     throw new Error("provide an object or a column name for the where clause");
+}
+
+Table.prototype.orderBy = function(orderBy) {
+    var self = this;
+    // orderBy should be an array
+    return orderBy.map(function(col) {
+        return self.prefix ? self.prefix + '.' + col : col;
+    }).join(', ');
 }
 
 // ----------------------------------------------------------------------------
