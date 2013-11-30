@@ -54,7 +54,10 @@ Table.prototype.selAll = function(cols) {
     cols = cols || this.cols;
     cols.sort();
     var sql = "SELECT " + self.colsToSel(cols) + " FROM " + this.sql.fqn;
-    return sql;
+    return {
+        sql : sql,
+        val : []
+    };
 };
 
 Table.prototype.sel = function(opts) {
@@ -73,8 +76,10 @@ Table.prototype.sel = function(opts) {
 
     // now make the sql
     var sql = "SELECT " + self.colsToSel(opts.cols) + " FROM " + this.sql.fqn;
+    var val = [];
     if ( opts.where ) {
         sql += " " + this.where(opts.where);
+        val = Object.keys(opts.where).sort().map(function(c) { return opts.where[c]; });
     }
     if ( opts.orderBy ) {
         sql += " " + this.orderBy(opts.orderBy);
@@ -85,59 +90,128 @@ Table.prototype.sel = function(opts) {
     if ( opts.offset ) {
         sql += " OFFSET " + opts.offset;
     }
-    return sql;
+    return {
+        sql : sql,
+        val : val,
+    };
 };
 
 Table.prototype.ins = function(obj) {
     var self = this;
+
+    // sql
     var cols = Object.keys(obj).sort();
     var into = cols.join(", ");
-    var placeholders = cols.map(function(field) { return '?'; }).join(", ");
-    return "INSERT INTO " + this.sql.tablename + "(" + into + ") VALUES(" + placeholders + ") RETURNING " + this.colsToReturning(this.cols);
+    var placeholders = cols.map(function(field, i) { return '$' + (i+1); }).join(", ");
+
+    // val
+    var val = cols.map(function(c) { return obj[c]; });
+
+    return {
+        sql : "INSERT INTO " + this.sql.tablename + "(" + into + ") VALUES(" + placeholders + ") RETURNING " + this.colsToReturning(this.cols),
+        val : val,
+    };
 };
 
 Table.prototype.updAll = function(obj) {
     var self = this;
+
+    var i = 0;
+
+    // sql
     var cols = Object.keys(obj).sort();
     var sets = cols.map(function(c) {
-        return (self.prefix ? self.prefix + '.' : '') + c + ' = ?';
+        i++;
+        return (self.prefix ? self.prefix + '.' : '') + c + ' = $' + i;
     }).join(', ');
-    return "UPDATE " + this.sql.fqn + " SET " + sets;
+
+    // val
+    var val = cols.map(function(c) { return obj[c]; });
+
+    return {
+        sql : "UPDATE " + this.sql.fqn + " SET " + sets,
+        val : val
+    };
 };
 
-Table.prototype.updPk = function(obj) {
+Table.prototype.updPk = function(obj, pkVal) {
     var self = this;
+
+    var i = 0;
+
+    // sql
     var cols = Object.keys(obj).sort();
     var sets = cols.map(function(c) {
-        return (self.prefix ? self.prefix + '.' : '') + c + ' = ?';
+        i++;
+        return (self.prefix ? self.prefix + '.' : '') + c + ' = $' + i;
     }).join(', ');
-    return "UPDATE " + this.sql.fqn + " SET " + sets + " " + this.where(this.pk);
+
+    // val
+    var val = cols.map(function(c) { return obj[c]; });
+    val.push(pkVal);
+
+    return {
+        sql : "UPDATE " + this.sql.fqn + " SET " + sets + " " + this.where(this.pk, i),
+        val : val
+    };
 };
 
 Table.prototype.updWhere = function(obj, where) {
     var self = this;
+
+    var i = 0;
+
+    // sql
     var cols = Object.keys(obj).sort();
     var sets = cols.map(function(c) {
-        return (self.prefix ? self.prefix + '.' : '') + c + ' = ?';
+        i++;
+        return (self.prefix ? self.prefix + '.' : '') + c + ' = $' + i;
     }).join(', ');
-    var sql = "UPDATE " + this.sql.fqn + " SET " + sets + " " + this.where(where);
-    return sql;
+
+    // val
+    var val = cols.map(function(c) { return obj[c]; });
+    Object.keys(where).sort().forEach(function(c) {
+        val.push(where[c]);
+    });
+
+    return {
+        sql : "UPDATE " + this.sql.fqn + " SET " + sets + " " + this.where(where, i),
+        val : val,
+    };
 };
 
 Table.prototype.delAll = function() {
     var self = this;
-    return "DELETE FROM " + this.sql.fqn;
+    return {
+        sql : "DELETE FROM " + this.sql.fqn,
+        val : [],
+    };
 };
 
-Table.prototype.delPk = function() {
+Table.prototype.delPk = function(val) {
     var self = this;
-    return "DELETE FROM " + this.sql.fqn + " " + this.where(this.pk);
+    return {
+        sql : "DELETE FROM " + this.sql.fqn + " " + this.where(this.pk),
+        val : [ val ],
+    };
 };
 
 Table.prototype.delWhere = function(where) {
     var self = this;
+
+    // sql
     var sql = "DELETE FROM " + this.sql.fqn + " " + this.where(where);
-    return sql;
+
+    // val
+    var val = [];
+    Object.keys(where).sort().forEach(function(c) {
+        val.push(where[c]);
+    });
+
+    return {
+        sql : sql,
+        val : val,
+    };
 };
 
 // ----------------------------------------------------------------------------
@@ -157,18 +231,22 @@ Table.prototype.colsToReturning = function(cols) {
     }).join(', ');
 }
 
-Table.prototype.where = function(where) {
+Table.prototype.where = function(where, currentIndex) {
     var self = this;
+
+    var i = currentIndex || 0;
 
     if ( typeof where == 'object' ) {
         var whereClause = Object.keys(where).sort().map(function(c) {
-            return self.prefix ? self.prefix + '.' + c + ' = ?' : c + ' = ?';
+            i++;
+            return self.prefix ? self.prefix + '.' + c + ' = $' + i : c + ' = $' + i;
         }).join(' AND ');
         return 'WHERE ' + whereClause;
     }
 
     if ( typeof where === 'string' ) {
-        return 'WHERE ' + (self.prefix ? self.prefix + '.' : '') + where + ' = ?';
+        i++;
+        return 'WHERE ' + (self.prefix ? self.prefix + '.' : '') + where + ' = $' + i;
     }
 
     throw new Error("provide an object or a column name for the where clause");
