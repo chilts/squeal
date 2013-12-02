@@ -55,8 +55,8 @@ Table.prototype.selAll = function(cols) {
     cols.sort();
     var sql = "SELECT " + self.colsToSel(cols) + " FROM " + this.sql.fqn;
     return {
-        sql : sql,
-        val : []
+        sql  : sql,
+        vals : []
     };
 };
 
@@ -76,10 +76,10 @@ Table.prototype.sel = function(opts) {
 
     // now make the sql
     var sql = "SELECT " + self.colsToSel(opts.cols) + " FROM " + this.sql.fqn;
-    var val = [];
+    var vals = [];
     if ( opts.where ) {
         sql += " " + this.where(opts.where);
-        val = Object.keys(opts.where).sort().map(function(c) { return opts.where[c]; });
+        vals = Object.keys(opts.where).sort().map(function(c) { return opts.where[c]; });
     }
     if ( opts.orderBy ) {
         sql += " " + this.orderBy(opts.orderBy);
@@ -91,8 +91,8 @@ Table.prototype.sel = function(opts) {
         sql += " OFFSET " + opts.offset;
     }
     return {
-        sql : sql,
-        val : val,
+        sql  : sql,
+        vals : vals,
     };
 };
 
@@ -105,11 +105,11 @@ Table.prototype.ins = function(obj) {
     var placeholders = cols.map(function(field, i) { return '$' + (i+1); }).join(", ");
 
     // val
-    var val = cols.map(function(c) { return obj[c]; });
+    var vals = cols.map(function(c) { return obj[c]; });
 
     return {
-        sql : "INSERT INTO " + this.sql.tablename + "(" + into + ") VALUES(" + placeholders + ") RETURNING " + this.colsToReturning(this.cols),
-        val : val,
+        sql  : "INSERT INTO " + this.sql.tablename + "(" + into + ") VALUES(" + placeholders + ") RETURNING " + this.colsToReturning(this.cols),
+        vals : vals,
     };
 };
 
@@ -125,12 +125,12 @@ Table.prototype.updAll = function(obj) {
         return (self.prefix ? self.prefix + '.' : '') + c + ' = $' + i;
     }).join(', ');
 
-    // val
-    var val = cols.map(function(c) { return obj[c]; });
+    // vals
+    var vals = cols.map(function(c) { return obj[c]; });
 
     return {
-        sql : "UPDATE " + this.sql.fqn + " SET " + sets,
-        val : val
+        sql  : "UPDATE " + this.sql.fqn + " SET " + sets,
+        vals : vals,
     };
 };
 
@@ -147,12 +147,12 @@ Table.prototype.updPk = function(obj, pkVal) {
     }).join(', ');
 
     // val
-    var val = cols.map(function(c) { return obj[c]; });
-    val.push(pkVal);
+    var vals = cols.map(function(c) { return obj[c]; });
+    vals.push(pkVal);
 
     return {
-        sql : "UPDATE " + this.sql.fqn + " SET " + sets + " " + this.where(this.pk, i),
-        val : val
+        sql  : "UPDATE " + this.sql.fqn + " SET " + sets + " " + this.where(this.pk, i),
+        vals : vals,
     };
 };
 
@@ -168,31 +168,31 @@ Table.prototype.updWhere = function(obj, where) {
         return (self.prefix ? self.prefix + '.' : '') + c + ' = $' + i;
     }).join(', ');
 
-    // val
-    var val = cols.map(function(c) { return obj[c]; });
+    // vals
+    var vals = cols.map(function(c) { return obj[c]; });
     Object.keys(where).sort().forEach(function(c) {
-        val.push(where[c]);
+        vals.push(where[c]);
     });
 
     return {
-        sql : "UPDATE " + this.sql.fqn + " SET " + sets + " " + this.where(where, i),
-        val : val,
+        sql  : "UPDATE " + this.sql.fqn + " SET " + sets + " " + this.where(where, i),
+        vals : vals,
     };
 };
 
 Table.prototype.delAll = function() {
     var self = this;
     return {
-        sql : "DELETE FROM " + this.sql.fqn,
-        val : [],
+        sql  : "DELETE FROM " + this.sql.fqn,
+        vals : [],
     };
 };
 
 Table.prototype.delPk = function(val) {
     var self = this;
     return {
-        sql : "DELETE FROM " + this.sql.fqn + " " + this.where(this.pk),
-        val : [ val ],
+        sql  : "DELETE FROM " + this.sql.fqn + " " + this.where(this.pk),
+        vals : [ val ],
     };
 };
 
@@ -202,15 +202,15 @@ Table.prototype.delWhere = function(where) {
     // sql
     var sql = "DELETE FROM " + this.sql.fqn + " " + this.where(where);
 
-    // val
-    var val = [];
+    // vals
+    var vals = [];
     Object.keys(where).sort().forEach(function(c) {
-        val.push(where[c]);
+        vals.push(where[c]);
     });
 
     return {
-        sql : sql,
-        val : val,
+        sql  : sql,
+        vals : vals,
     };
 };
 
