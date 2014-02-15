@@ -16,44 +16,52 @@ function Table(definition) {
         throw new Error("provide a name for this table");
     }
 
+    var self = this;
+
     // save some details
-    this.name   = definition.name;
-    this.pk     = definition.pk;
+    self.name   = definition.name;
+    self.pk     = definition.pk;
     if ( definition.schema ) {
-        this.schema = definition.schema
+        self.schema = definition.schema
     }
     if ( definition.prefix ) {
-        this.prefix = definition.prefix;
+        self.prefix = definition.prefix;
     }
-    this.ro = definition.ro || [ this.pk ];
-    this.rw = definition.rw || [];
+    self.ro = definition.ro || [ self.pk ];
+    self.rw = definition.rw || [];
 
     // generate some things for use later
-    this.cols = [];
-    if ( this.ro.length ) {
-        this.cols = this.cols.concat(this.ro);
+    self.cols = [];
+    if ( self.ro.length ) {
+        self.cols = self.cols.concat(self.ro);
     }
-    if ( this.rw.length ) {
-        this.cols = this.cols.concat(this.rw);
+    if ( self.rw.length ) {
+        self.cols = self.cols.concat(self.rw);
     }
 
+    // remember these columns for easier lookup
+    self.col = {};
+    self.cols.forEach(function(col) {
+        self.col[col] = true;
+    });
+
     // generate some helper sql
-    this.sql = {};
-    this.sql.tablename = this.name;
-    if ( this.schema ) {
-        this.sql.tablename = this.schema + "." + this.name;
+    self.sql = {};
+    self.sql.tablename = self.name;
+    if ( self.schema ) {
+        self.sql.tablename = self.schema + "." + self.name;
     }
-    this.sql.fqn = this.sql.tablename;
-    if ( this.prefix ) {
-        this.sql.fqn += " " + this.prefix;
+    self.sql.fqn = self.sql.tablename;
+    if ( self.prefix ) {
+        self.sql.fqn += " " + self.prefix;
     }
 }
 
 Table.prototype.selAll = function(cols) {
     var self = this;
-    cols = cols || this.cols;
+    cols = cols || self.cols;
     cols.sort();
-    var sql = "SELECT " + self.colsToSel(cols) + " FROM " + this.sql.fqn;
+    var sql = "SELECT " + self.colsToSel(cols) + " FROM " + self.sql.fqn;
     return {
         sql  : sql,
         vals : []
@@ -71,18 +79,18 @@ Table.prototype.sel = function(opts) {
     }
 
     // Want: opts.cols, opts.where, opts.orderBy, opts.limit, opts.offset
-    opts.cols = opts.cols || this.cols;
+    opts.cols = opts.cols || self.cols;
     opts.cols.sort();
 
     // now make the sql
-    var sql = "SELECT " + self.colsToSel(opts.cols) + " FROM " + this.sql.fqn;
+    var sql = "SELECT " + self.colsToSel(opts.cols) + " FROM " + self.sql.fqn;
     var vals = [];
     if ( opts.where ) {
-        sql += " " + this.where(opts.where);
+        sql += " " + self.where(opts.where);
         vals = Object.keys(opts.where).sort().map(function(c) { return opts.where[c]; });
     }
     if ( opts.orderBy ) {
-        sql += " " + this.orderBy(opts.orderBy);
+        sql += " " + self.orderBy(opts.orderBy);
     }
     if ( opts.limit ) {
         sql += " LIMIT " + opts.limit;
@@ -99,8 +107,21 @@ Table.prototype.sel = function(opts) {
 Table.prototype.ins = function(obj) {
     var self = this;
 
-    // sql
+    // check input is an object
+    if ( typeof obj !== 'object' ) {
+        throw new Error('squeal.ins(): obj should be an object, it is a ' + typeof obj);
+    }
+
+    // check all the cols given are in the table
     var cols = Object.keys(obj).sort();
+    cols.forEach(function(col) {
+        if ( col in self.col ) {
+            return;
+        }
+        throw new Error('Columns ' + col + ' does not exist in table ' + self.sql.tablename);
+    });
+
+    // sql
     var into = cols.join(", ");
     var placeholders = cols.map(function(field, i) { return '$' + (i+1); }).join(", ");
 
@@ -108,13 +129,22 @@ Table.prototype.ins = function(obj) {
     var vals = cols.map(function(c) { return obj[c]; });
 
     return {
-        sql  : "INSERT INTO " + this.sql.tablename + "(" + into + ") VALUES(" + placeholders + ") RETURNING " + this.colsToReturning(this.cols),
+        sql  : "INSERT INTO " + self.sql.tablename + "(" + into + ") VALUES(" + placeholders + ") RETURNING " + self.colsToReturning(self.cols),
         vals : vals,
     };
 };
 
 Table.prototype.updAll = function(obj) {
     var self = this;
+
+    // check all the cols given are in the table
+    var cols = Object.keys(obj).sort();
+    cols.forEach(function(col) {
+        if ( col in self.col ) {
+            return;
+        }
+        throw new Error('Columns ' + col + ' does not exist in table ' + self.sql.tablename);
+    });
 
     var i = 0;
 
@@ -129,7 +159,7 @@ Table.prototype.updAll = function(obj) {
     var vals = cols.map(function(c) { return obj[c]; });
 
     return {
-        sql  : "UPDATE " + this.sql.fqn + " SET " + sets,
+        sql  : "UPDATE " + self.sql.fqn + " SET " + sets,
         vals : vals,
     };
 };
@@ -151,7 +181,7 @@ Table.prototype.updPk = function(obj, pkVal) {
     vals.push(pkVal);
 
     return {
-        sql  : "UPDATE " + this.sql.fqn + " SET " + sets + " " + this.where(this.pk, i),
+        sql  : "UPDATE " + self.sql.fqn + " SET " + sets + " " + self.where(self.pk, i),
         vals : vals,
     };
 };
@@ -175,7 +205,7 @@ Table.prototype.updWhere = function(obj, where) {
     });
 
     return {
-        sql  : "UPDATE " + this.sql.fqn + " SET " + sets + " " + this.where(where, i),
+        sql  : "UPDATE " + self.sql.fqn + " SET " + sets + " " + self.where(where, i),
         vals : vals,
     };
 };
@@ -183,7 +213,7 @@ Table.prototype.updWhere = function(obj, where) {
 Table.prototype.delAll = function() {
     var self = this;
     return {
-        sql  : "DELETE FROM " + this.sql.fqn,
+        sql  : "DELETE FROM " + self.sql.fqn,
         vals : [],
     };
 };
@@ -191,7 +221,7 @@ Table.prototype.delAll = function() {
 Table.prototype.delPk = function(val) {
     var self = this;
     return {
-        sql  : "DELETE FROM " + this.sql.fqn + " " + this.where(this.pk),
+        sql  : "DELETE FROM " + self.sql.fqn + " " + self.where(self.pk),
         vals : [ val ],
     };
 };
@@ -200,7 +230,7 @@ Table.prototype.delWhere = function(where) {
     var self = this;
 
     // sql
-    var sql = "DELETE FROM " + this.sql.fqn + " " + this.where(where);
+    var sql = "DELETE FROM " + self.sql.fqn + " " + self.where(where);
 
     // vals
     var vals = [];

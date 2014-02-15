@@ -317,4 +317,3 @@ test('the most basic table with a prefix and a schema', function(t) {
 
     t.end();
 });
-
