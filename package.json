@@ -3,27 +3,29 @@
   "description": "Create your SQL more easily.",
   "version": "0.3.0",
   "main": "squeal.js",
-  "author"       : {
-    "name"  : "Andrew Chilton",
-    "email" : "andychilton@gmail.com",
-    "url"   : "http://www.chilts.org/"
+  "author": {
+    "name": "Andrew Chilton",
+    "email": "andychilton@gmail.com",
+    "url": "http://www.chilts.org/"
   },
   "scripts": {
-    "test": "set -e; for FILE in test/*.js; do node $FILE; done"
+    "test": "set -e; for FILE in test/*.js; do tape $FILE; done"
   },
   "devDependencies": {
-    "tape": "~2.1.0"
+    "tape": "^4.5.1"
   },
-  "repository"   : {
-    "type" : "git",
-    "url"  : "git://github.com/chilts/squeal.git"
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/chilts/squeal.git"
   },
-  "bugs" : {
-    "url"  : "http://github.com/chilts/squeal/issues",
-    "mail" : "andychilton@gmail.com"
+  "bugs": {
+    "url": "http://github.com/chilts/squeal/issues",
+    "mail": "andychilton@gmail.com"
   },
-  "licenses" : [{
-    "type" : "MIT",
-    "url"  : "http://chilts.mit-license.org/2013/"
-  }]
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://chilts.mit-license.org/2013/"
+    }
+  ]
 }
