@@ -32,6 +32,12 @@ console.log('sql=' + stmt.vals)
 
 ```
 
+## Fragments of SQL ##
+
+Squeal can also help you construct bigger SQL statements such as when you are joining tables, though squeal doesn't
+actually do this for you (since you know your data better than it does). For example, if joining a item table with
+an account table.
+
 ## AUTHOR ##
 
 Written by [Andrew Chilton](http://chilts.org/):
