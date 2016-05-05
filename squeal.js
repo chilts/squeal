@@ -30,6 +30,9 @@ function Table(definition) {
     self.ro = definition.ro || [ self.pk ];
     self.rw = definition.rw || [];
 
+    // remember the foreign keys
+    self.fk = definition.fk || {};
+
     // generate some things for use later
     self.cols = [];
     if ( self.ro.length ) {
@@ -55,6 +58,10 @@ function Table(definition) {
     if ( self.prefix ) {
         self.sql.fqn += " " + self.prefix;
     }
+}
+
+Table.prototype.theseCols = function() {
+  return this.cols;
 }
 
 Table.prototype.selAll = function(cols) {
@@ -152,14 +159,14 @@ Table.prototype.updAll = function(obj) {
     var cols = Object.keys(obj).sort();
     var sets = cols.map(function(c) {
         i++;
-        return (self.prefix ? self.prefix + '.' : '') + c + ' = $' + i;
+        return c + ' = $' + i;
     }).join(', ');
 
     // vals
     var vals = cols.map(function(c) { return obj[c]; });
 
     return {
-        sql  : "UPDATE " + self.sql.fqn + " SET " + sets,
+        sql  : "UPDATE " + self.sql.fqn + " SET " + sets + " RETURNING " + self.colsToReturning(self.cols),
         vals : vals,
     };
 };
@@ -173,7 +180,7 @@ Table.prototype.updPk = function(obj, pkVal) {
     var cols = Object.keys(obj).sort();
     var sets = cols.map(function(c) {
         i++;
-        return (self.prefix ? self.prefix + '.' : '') + c + ' = $' + i;
+        return c + ' = $' + i;
     }).join(', ');
 
     // val
@@ -181,7 +188,7 @@ Table.prototype.updPk = function(obj, pkVal) {
     vals.push(pkVal);
 
     return {
-        sql  : "UPDATE " + self.sql.fqn + " SET " + sets + " " + self.where(self.pk, i),
+        sql  : "UPDATE " + self.sql.fqn + " SET " + sets + " " + self.where(self.pk, i) + " RETURNING " + self.colsToReturning(self.cols),
         vals : vals,
     };
 };
@@ -195,7 +202,7 @@ Table.prototype.updWhere = function(obj, where) {
     var cols = Object.keys(obj).sort();
     var sets = cols.map(function(c) {
         i++;
-        return (self.prefix ? self.prefix + '.' : '') + c + ' = $' + i;
+        return c + ' = $' + i;
     }).join(', ');
 
     // vals
@@ -205,7 +212,7 @@ Table.prototype.updWhere = function(obj, where) {
     });
 
     return {
-        sql  : "UPDATE " + self.sql.fqn + " SET " + sets + " " + self.where(where, i),
+        sql  : "UPDATE " + self.sql.fqn + " SET " + sets + " " + self.where(where, i) + " RETURNING " + self.colsToReturning(self.cols),
         vals : vals,
     };
 };
@@ -247,8 +254,23 @@ Table.prototype.delWhere = function(where) {
 // ----------------------------------------------------------------------------
 // sql helpers
 
+Table.prototype.prefixedTableName = function prefixedTableName() {
+    if ( !this.prefix ) {
+        return this.tablename;
+    }
+    return this.prefix + '.' + this.tablename;
+}
+
+Table.prototype.prefixedColName = function prefixedColName(col) {
+    if ( !this.prefix ) {
+        return col;
+    }
+    return this.prefix + '.' + col;
+}
+
 Table.prototype.colsToSel = function(cols) {
     var self = this;
+    cols = cols || self.cols;
     return cols.map(function(c) {
         return self.prefix ? self.prefix + '.' + c + ' AS ' + self.prefix + '_' + c : c;
     }).join(', ');
@@ -256,9 +278,31 @@ Table.prototype.colsToSel = function(cols) {
 
 Table.prototype.colsToReturning = function(cols) {
     var self = this;
+    cols = cols || self.cols;
     return cols.map(function(c) {
         return self.prefix ? c + ' AS ' + self.prefix + '_' + c : c;
     }).join(', ');
+}
+
+Table.prototype.sqlJoin = function sqlJoin(relation) {
+    // check if this relation exists
+    if ( !(relation in this.fk) ) {
+        throw new Error('squeal: Program Error: Unknown relation ' + relation + ' to use in join')
+    }
+
+    var fk = this.fk[relation];
+    var fkCol = fk.fkCol;
+    var other = fk.table;
+    var pkCol = fk.pkCol;
+
+    var thisColName  = this.prefixedColName(fkCol);
+    var otherColName = other.prefixedColName(pkCol);
+
+    return 'JOIN ' + other.sql.fqn + ' ON (' + thisColName + ' = ' + otherColName + ')'
+}
+
+Table.prototype.leftSqlJoin = function sqlJoin(relation) {
+    return 'LEFT ' + this.sqlJoin(relation);
 }
 
 Table.prototype.where = function(where, currentIndex) {

@@ -161,19 +161,19 @@ test('the most basic table with some cols', function(t) {
 
     // upd
     a = table.updAll({ username : 'chilts', email : 'me@example.com', password : 'deadbeef' });
-    t.equal(a.sql, "UPDATE user SET email = $1, password = $2, username = $3", 'updAll() is ok');
+    t.equal(a.sql, "UPDATE user SET email = $1, password = $2, username = $3 RETURNING email, id, password, username", 'updAll() is ok');
     t.deepEqual(a.vals, [ 'me@example.com', 'deadbeef', 'chilts' ], '.updAll() vals is ok');
 
     a = table.updPk({ username : 'chilts', email : 'me@example.com', password : 'deadbeef' }, 120);
-    t.equal(a.sql, "UPDATE user SET email = $1, password = $2, username = $3 WHERE id = $4", '.updPk() is ok');
+    t.equal(a.sql, "UPDATE user SET email = $1, password = $2, username = $3 WHERE id = $4 RETURNING email, id, password, username", '.updPk() is ok');
     t.deepEqual(a.vals, [ 'me@example.com', 'deadbeef', 'chilts', 120 ], '.updPk() vals is ok');
 
     a = table.updWhere({ username : 'chilts', email : 'me@example.com', password : 'deadbeef' }, { id : 7 });
-    t.equal(a.sql, "UPDATE user SET email = $1, password = $2, username = $3 WHERE id = $4", 'updWhere() is ok');
+    t.equal(a.sql, "UPDATE user SET email = $1, password = $2, username = $3 WHERE id = $4 RETURNING email, id, password, username", 'updWhere() is ok');
     t.deepEqual(a.vals, [ 'me@example.com', 'deadbeef', 'chilts', 7 ], '.updWhere() vals is ok');
 
     a = table.updWhere({ inserted : '2012-12-31' }, { username : 'chilts', email : 'me@example.com' });
-    t.equal(a.sql, "UPDATE user SET inserted = $1 WHERE email = $2 AND username = $3", 'updWhere() with where is ok');
+    t.equal(a.sql, "UPDATE user SET inserted = $1 WHERE email = $2 AND username = $3 RETURNING email, id, password, username", 'updWhere() with where is ok');
     t.deepEqual(a.vals, [ '2012-12-31', 'me@example.com', 'chilts' ], '.updWhere() vals is ok');
 
     // del
@@ -229,15 +229,15 @@ test('the most basic table with a schema', function(t) {
 
     // upd
     a = table.updAll({ inserted : 4, updated : 5 });
-    t.equal(a.sql, "UPDATE account.user SET inserted = $1, updated = $2", 'updAll() is ok');
+    t.equal(a.sql, "UPDATE account.user SET inserted = $1, updated = $2 RETURNING id, inserted, updated", 'updAll() is ok');
     t.deepEqual(a.vals, [ 4, 5 ], '.delWhere() vals is ok');
 
     a = table.updPk({ inserted : 4, updated : 5 }, 17);
-    t.equal(a.sql, "UPDATE account.user SET inserted = $1, updated = $2 WHERE id = $3", 'updPk() is ok');
+    t.equal(a.sql, "UPDATE account.user SET inserted = $1, updated = $2 WHERE id = $3 RETURNING id, inserted, updated", 'updPk() is ok');
     t.deepEqual(a.vals, [ 4, 5, 17 ], '.delWhere() vals is ok');
 
     a = table.updWhere({ inserted : 1, updated : 2 }, { id : 4 });
-    t.equal(a.sql, "UPDATE account.user SET inserted = $1, updated = $2 WHERE id = $3", 'updWhere() with where is ok');
+    t.equal(a.sql, "UPDATE account.user SET inserted = $1, updated = $2 WHERE id = $3 RETURNING id, inserted, updated", 'updWhere() with where is ok');
     t.deepEqual(a.vals, [ 1, 2, 4 ], '.delWhere() vals is ok');
 
     // del
@@ -291,16 +291,20 @@ test('the most basic table with a prefix and a schema', function(t) {
 
     // upd
     a = table.updAll({ inserted : 4 });
-    t.equal(a.sql, "UPDATE account.user u SET u.inserted = $1", 'updAll() is ok');
+    t.equal(a.sql, "UPDATE account.user u SET inserted = $1 RETURNING id AS u_id, inserted AS u_inserted", 'updAll() is ok');
     t.deepEqual(a.vals, [ 4 ], '.updAll() vals is ok');
 
     a = table.updPk({ inserted : 4 }, 121);
-    t.equal(a.sql, "UPDATE account.user u SET u.inserted = $1 WHERE u.id = $2", 'updPk() is ok');
+    t.equal(a.sql, "UPDATE account.user u SET inserted = $1 WHERE u.id = $2 RETURNING id AS u_id, inserted AS u_inserted", 'updPk() is ok');
     t.deepEqual(a.vals, [ 4, 121 ], '.updPk() vals is ok');
 
     a = table.updWhere({ inserted : 23 }, { id : 37 });
-    t.equal(a.sql, "UPDATE account.user u SET u.inserted = $1 WHERE u.id = $2", 'updWhere() with where is ok');
+    t.equal(a.sql, "UPDATE account.user u SET inserted = $1 WHERE u.id = $2 RETURNING id AS u_id, inserted AS u_inserted", 'updWhere() with where is ok');
     t.deepEqual(a.vals, [ 23, 37 ], '.updWhere() vals is ok');
+
+    a = table.updWhere({ inserted : 23 }, { id : 37, inserted : 22 });
+    t.equal(a.sql, "UPDATE account.user u SET inserted = $1 WHERE u.id = $2 AND u.inserted = $3 RETURNING id AS u_id, inserted AS u_inserted", 'updWhere() with where is ok');
+    t.deepEqual(a.vals, [ 23, 37, 22 ], '.updWhere() vals is ok');
 
     // del
     a = table.delAll();
