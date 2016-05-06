@@ -3,11 +3,6 @@
   "description": "Create your SQL more easily.",
   "version": "0.4.0",
   "main": "squeal.js",
-  "author": {
-    "name": "Andrew Chilton",
-    "email": "andychilton@gmail.com",
-    "url": "http://www.chilts.org/"
-  },
   "scripts": {
     "test": "set -e; for FILE in test/*.js; do tape $FILE; done"
   },
@@ -27,5 +22,10 @@
       "type": "MIT",
       "url": "http://chilts.mit-license.org/2013/"
     }
-  ]
+  ],
+  "author": {
+    "name": "Andrew Chilton",
+    "email": "andychilton@gmail.com",
+    "url": "http://www.chilts.org/"
+  }
 }
